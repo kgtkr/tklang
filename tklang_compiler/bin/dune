@@ -1,0 +1,4 @@
+(executable
+ (public_name tklangc)
+ (name main)
+ (libraries tklang_compiler))
