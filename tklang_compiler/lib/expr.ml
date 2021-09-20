@@ -36,7 +36,7 @@ let rec to_string (ets: Type.t MI.t) (idents: Type_scheme.t MI.t) (x: (int, int)
     match x with
         | Int(nid, i) -> Int.to_string i ^ ":" ^ (MI.find nid ets |> Type.to_string)
         | Bool(nid, b) -> Bool.to_string b ^ ":" ^ (MI.find nid ets |> Type.to_string)
-        | Var(nid, id) -> "{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}:" ^ (MI.find nid ets |> Type.to_string)
+        | Var(nid, id) -> "{" ^ Int.to_string id ^ "}:" ^ (MI.find nid ets |> Type.to_string)
         | Op(nid, e1, op, e2) -> "(" ^ to_string ets idents e1 ^ ")" ^ op_to_string op ^ "(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
         | If(nid, e1, e2, e3) -> "if(" ^ to_string ets idents e1 ^ ")then(" ^ to_string ets idents e2 ^ ")else(" ^ to_string ets idents e3 ^ "):" ^ (MI.find nid ets |> Type.to_string)
         | Let(nid, id, e1, e2) -> "let{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}=(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
