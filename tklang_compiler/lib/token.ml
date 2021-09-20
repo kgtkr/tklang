@@ -8,10 +8,13 @@ type reserved_keyword  =
     | Rec
     | Match
     | With
+    | True
+    | False
 
 type reserved_symbol =
     | RArrow
     | VerticalBar
+    | Equal
     
 type t =
     | Op of string

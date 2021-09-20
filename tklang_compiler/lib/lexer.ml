@@ -56,6 +56,8 @@ let rec lex_helper (input: char list) (tokens: Token.t list): Token.t list =
             | "rec" -> Token.ReservedKeyword Token.Rec
             | "match" -> Token.ReservedKeyword Token.Match
             | "with" -> Token.ReservedKeyword Token.With
+            | "true" -> Token.ReservedKeyword Token.True
+            | "false" -> Token.ReservedKeyword Token.False
             | ident -> Token.Ident ident) :: tokens)
         | c::cs when is_symbol(c) ->
             let (symbol_rest, cs) = split_while is_symbol cs in
@@ -63,6 +65,7 @@ let rec lex_helper (input: char list) (tokens: Token.t list): Token.t list =
             lex_helper cs ((match symbol with
             | "->" -> Token.ReservedSymbol Token.RArrow
             | "|" -> Token.ReservedSymbol Token.VerticalBar
+            | "=" -> Token.ReservedSymbol Token.Equal
             | symbol -> Token.Op symbol) :: tokens)
         | _ -> raise LexError
 
