@@ -18,6 +18,35 @@ type
     | Cons of 'a * ('id, 'a) t * ('id, 'a) t
     | Match of 'a * ('id, 'a) t * ('id, 'a) clause list;;
 
+let op_to_string (op: op): string =
+    match op with
+    | Add -> "+"
+    | Sub -> "-"
+    | Mul -> "*"
+    | Lt -> "<"
+
+let rec pat_to_string (idents: Type_scheme.t MI.t) (x: int pat): string =
+    match x with
+        | AnyPat(id) -> "{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}"
+        | EmptyListPat -> "[]"
+        | ConsPat(p1, p2) -> "(" ^ pat_to_string idents p1 ^ ")::(" ^ pat_to_string idents p2 ^ ")"
+        | IgnorePat -> "_"
+
+let rec to_string (ets: Type.t MI.t) (idents: Type_scheme.t MI.t) (x: (int, int) t): string =
+    match x with
+        | Int(nid, i) -> Int.to_string i ^ ":" ^ (MI.find nid ets |> Type.to_string)
+        | Bool(nid, b) -> Bool.to_string b ^ ":" ^ (MI.find nid ets |> Type.to_string)
+        | Var(nid, id) -> "{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}:" ^ (MI.find nid ets |> Type.to_string)
+        | Op(nid, e1, op, e2) -> "(" ^ to_string ets idents e1 ^ ")" ^ op_to_string op ^ "(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | If(nid, e1, e2, e3) -> "if(" ^ to_string ets idents e1 ^ ")then(" ^ to_string ets idents e2 ^ ")else(" ^ to_string ets idents e3 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | Let(nid, id, e1, e2) -> "let{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}=(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | Fun(nid, id, e) -> "fun{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}->(" ^ to_string ets idents e ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | Ap(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | LetRecFun(nid, id1, id2, e1, e2) -> "let rec{" ^ Int.to_string id1 ^ ":" ^ (MI.find id1 idents |> Type_scheme.to_string) ^ "}=fun{" ^ Int.to_string id2 ^ ":" ^ (MI.find id2 idents |> Type_scheme.to_string) ^ "}->(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | EmptyList nid -> "[]:" ^ (MI.find nid ets |> Type.to_string)
+        | Cons(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")::(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
+        | Match(nid, e1, clauses) -> "match(" ^ to_string ets idents e1 ^ ")with" ^ (clauses |> List.map (fun (pat, e) -> "|" ^ pat_to_string idents pat ^ "->" ^ "(" ^ to_string ets idents e ^ ")") |> String.concat "") ^ ":" ^ (MI.find nid ets |> Type.to_string)
+
 let rec id_string_to_int_pat (pat: string pat) (counter: int): (int pat * int MS.t * string MI.t * int) =
     match pat with
     | AnyPat id ->
