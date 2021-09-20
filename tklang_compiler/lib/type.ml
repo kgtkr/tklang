@@ -2,6 +2,14 @@ open Set_ext
 
 type t = TypeVar of int | Bool | Int | Func of t * t | List of t
 
+let rec to_string (x:t): string =
+    match x with
+    | TypeVar x -> "'" ^ Int.to_string x
+    | Bool -> "bool"
+    | Int -> "int"
+    | Func (x, y) -> "(" ^ to_string x ^ ")->(" ^ to_string y ^ ")"
+    | List x -> "[" ^ to_string x ^ "]"
+
 let rec ftv (ts: t): SI.t = match ts with
     | TypeVar id -> SI.singleton id
     | Bool -> SI.empty
