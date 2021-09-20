@@ -17,19 +17,6 @@ let split_while (f: ('a) -> bool) (xs: 'a list): ('a list * 'a list) =
     let (ys, zs) = split_while_helper f xs [] in (List.rev zs, ys)
 
 (* -は単項演算子として実装するので負のリテラルは無視 *)
-
-(*
-    | If
-    | Then
-    | Else
-    | Let
-    | In
-    | Fun
-    | Rec
-    | Match
-    | With
-*)
-
 let rec lex_helper (input: char list) (tokens: Token.t list): Token.t list =
     match input with
         | [] -> tokens
