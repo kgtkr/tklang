@@ -5,7 +5,7 @@ let rec to_string (x:t): string =
     | TypeVar x -> Type_var_id.to_string x
     | Bool -> "bool"
     | Int -> "int"
-    | Func (x, y) -> "(" ^ to_string x ^ ")->(" ^ to_string y ^ ")"
+    | Func (x, y) -> "(" ^ to_string x ^ " -> " ^ to_string y ^ ")"
     | List x -> "[" ^ to_string x ^ "]"
 
 let rec ftv (ts: t): Type_var_ids.t = match ts with
