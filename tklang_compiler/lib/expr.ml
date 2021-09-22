@@ -1,5 +1,3 @@
-open Map_ext
-
 type
     op = Add | Sub | Mul | Lt
     and 'id pat = AnyPat of 'id | EmptyListPat | ConsPat of 'id pat * 'id pat | IgnorePat
@@ -25,129 +23,144 @@ let op_to_string (op: op): string =
     | Mul -> "*"
     | Lt -> "<"
 
-let rec pat_to_string (idents: Type_scheme.t MI.t) (x: int pat): string =
+let rec pat_to_string (tenv: Type_env.t) (x: Var_id.t pat): string =
     match x with
-        | AnyPat(id) -> "{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}"
+        | AnyPat(id) -> Var_id.to_string_with_type_scheme id (Type_env.get_exn id tenv)
         | EmptyListPat -> "[]"
-        | ConsPat(p1, p2) -> "(" ^ pat_to_string idents p1 ^ ")::(" ^ pat_to_string idents p2 ^ ")"
+        | ConsPat(p1, p2) -> "(" ^ pat_to_string tenv p1 ^ ")::(" ^ pat_to_string tenv p2 ^ ")"
         | IgnorePat -> "_"
 
-let rec to_string (ets: Type.t MI.t) (idents: Type_scheme.t MI.t) (x: (int, int) t): string =
+let rec to_string (ets: Expr_types.t) (idents: Type_env.t) (x: (Var_id.t, Expr_id.t) t): string =
     match x with
-        | Int(nid, i) -> Int.to_string i ^ ":" ^ (MI.find nid ets |> Type.to_string)
-        | Bool(nid, b) -> Bool.to_string b ^ ":" ^ (MI.find nid ets |> Type.to_string)
-        | Var(nid, id) -> "{" ^ Int.to_string id ^ "}:" ^ (MI.find nid ets |> Type.to_string)
-        | Op(nid, e1, op, e2) -> "(" ^ to_string ets idents e1 ^ ")" ^ op_to_string op ^ "(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | If(nid, e1, e2, e3) -> "if(" ^ to_string ets idents e1 ^ ")then(" ^ to_string ets idents e2 ^ ")else(" ^ to_string ets idents e3 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | Let(nid, id, e1, e2) -> "let{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}=(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | Fun(nid, id, e) -> "fun{" ^ Int.to_string id ^ ":" ^ (MI.find id idents |> Type_scheme.to_string) ^ "}->(" ^ to_string ets idents e ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | Ap(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | LetRecFun(nid, id1, id2, e1, e2) -> "let rec{" ^ Int.to_string id1 ^ ":" ^ (MI.find id1 idents |> Type_scheme.to_string) ^ "}=fun{" ^ Int.to_string id2 ^ ":" ^ (MI.find id2 idents |> Type_scheme.to_string) ^ "}->(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | EmptyList nid -> "[]:" ^ (MI.find nid ets |> Type.to_string)
-        | Cons(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")::(" ^ to_string ets idents e2 ^ "):" ^ (MI.find nid ets |> Type.to_string)
-        | Match(nid, e1, clauses) -> "match(" ^ to_string ets idents e1 ^ ")with" ^ (clauses |> List.map (fun (pat, e) -> "|" ^ pat_to_string idents pat ^ "->" ^ "(" ^ to_string ets idents e ^ ")") |> String.concat "") ^ ":" ^ (MI.find nid ets |> Type.to_string)
+        | Int(nid, i) -> Int.to_string i ^ ":" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Bool(nid, b) -> Bool.to_string b ^ ":" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Var(nid, id) -> Var_id.to_string id ^ ":" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Op(nid, e1, op, e2) -> "(" ^ to_string ets idents e1 ^ ")" ^ op_to_string op ^ "(" ^ to_string ets idents e2 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | If(nid, e1, e2, e3) -> "if(" ^ to_string ets idents e1 ^ ")then(" ^ to_string ets idents e2 ^ ")else(" ^ to_string ets idents e3 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Let(nid, id, e1, e2) -> "let" ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id idents) ^ "=(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Fun(nid, id, e) -> "fun" ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id idents) ^ "->(" ^ to_string ets idents e ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Ap(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")(" ^ to_string ets idents e2 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | LetRecFun(nid, id1, id2, e1, e2) -> "let rec" ^ Var_id.to_string_with_type_scheme id1 (Type_env.get_exn id1 idents) ^ "=fun" ^ Var_id.to_string_with_type_scheme id2 (Type_env.get_exn id2 idents) ^ "->(" ^ to_string ets idents e1 ^ ")in(" ^ to_string ets idents e2 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | EmptyList nid -> "[]:" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Cons(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ ")::(" ^ to_string ets idents e2 ^ "):" ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Match(nid, e1, clauses) -> "match(" ^ to_string ets idents e1 ^ ")with" ^ (clauses |> List.map (fun (pat, e) -> "|" ^ pat_to_string idents pat ^ "->" ^ "(" ^ to_string ets idents e ^ ")") |> String.concat "") ^ ":" ^ (Expr_types.get_exn nid ets |> Type.to_string)
 
-let rec id_string_to_int_pat (pat: string pat) (counter: int): (int pat * int MS.t * string MI.t * int) =
+let rec ident_to_unique_id_pat (pat: string pat) (gen: Var_id_gen.t): (Var_id.t pat * Var_id_gen.t) =
     match pat with
-    | AnyPat id ->
-        let (id, env, s, counter) = (counter, MS.singleton id counter, MI.singleton counter id, counter + 1) in
-        (AnyPat id, env, s, counter)
+    | AnyPat ident ->
+        let (id, gen) = Var_id_gen.gen ident gen in
+        (AnyPat id, gen)
     | EmptyListPat ->
-        (EmptyListPat, MS.empty, MI.empty, counter)
+        (EmptyListPat, gen)
     | ConsPat(pat1, pat2) ->
-        let (pat1, env1, s1, counter) = id_string_to_int_pat pat1 counter in
-        let (pat2, env2, s2, counter) = id_string_to_int_pat pat2 counter in
-        (ConsPat(pat1, pat2), env1 |> MS.add_seq (MS.to_seq env2), s1 |> MI.add_seq (MI.to_seq s2), counter)
+        let (pat1, gen) = ident_to_unique_id_pat pat1 gen in
+        let (pat2, gen) = ident_to_unique_id_pat pat2 gen in
+        (ConsPat(pat1, pat2), gen)
     | IgnorePat ->
-        (IgnorePat, MS.empty, MI.empty, counter)
+        (IgnorePat, gen)
 
-let rec id_string_to_int (env: int MS.t) (e: (string, 'a) t) (counter: int): ((int, 'a) t * string MI.t * int) =
+let rec ident_to_unique_id (e: (string, 'a) t) (gen: Var_id_gen.t): ((Var_id.t, 'a) t * Var_id_gen.t) =
     match e with
-        | Int (m, a) -> (Int (m, a), MI.empty, counter)
-        | Bool (m, a) -> (Bool (m, a), MI.empty, counter)
-        | Var (m, id) -> (Var (m, MS.find id env), MI.empty, counter)
+        | Int (m, a) -> (Int (m, a), gen)
+        | Bool (m, a) -> (Bool (m, a), gen)
+        | Var (m, ident) -> (Var (m, Var_id_gen.lookup_exn ident gen), gen)
         | Op (m, e1, a, e2) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (e2, s2, counter) = id_string_to_int env e2 counter in
-            (Op (m, e1, a, e2), MI.add_seq (MI.to_seq s2) s1, counter)
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let (e2, gen) = ident_to_unique_id e2 gen in
+            (Op (m, e1, a, e2), gen)
         | If (m, e1, e2, e3) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (e2, s2, counter) = id_string_to_int env e2 counter in
-            let (e3, s3, counter) = id_string_to_int env e3 counter in
-            (If (m, e1, e2, e3), s1 |> MI.add_seq (MI.to_seq s2) |>  MI.add_seq (MI.to_seq s3), counter)
-        | Let (m, id, e1, e2) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (id, env2, s2, counter) = (counter, MS.add id counter env, MI.singleton counter id, counter + 1) in
-            let (e2, s3, counter) = id_string_to_int env2 e2 counter in
-            (Let (m, id, e1, e2), s1 |> MI.add_seq (MI.to_seq s2) |>  MI.add_seq (MI.to_seq s3), counter)
-        | Fun (m, id, e) ->
-            let (id, env2, s1, counter) = (counter, MS.add id counter env, MI.singleton counter id, counter + 1) in
-            let (e, s2, counter) = id_string_to_int env2 e counter in
-            (Fun (m, id, e), s1 |> MI.add_seq (MI.to_seq s2), counter)
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let (e2, gen) = ident_to_unique_id e2 gen in
+            let (e3, gen) = ident_to_unique_id e3 gen in
+            (If (m, e1, e2, e3), gen)
+        | Let (m, ident, e1, e2) ->
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let ((id, e2), gen) = gen |> Var_id_gen.scoped (
+                let (id, gen) = Var_id_gen.gen ident gen in
+                let (e2, gen) = ident_to_unique_id e2 gen in
+                ((id, e2), gen)
+            ) in
+            (Let (m, id, e1, e2), gen)
+        | Fun (m, ident, e) ->
+            let ((id, e), gen) = gen |> Var_id_gen.scoped (
+                let (id, gen) = Var_id_gen.gen ident gen in
+                let (e, gen) = ident_to_unique_id e gen in
+                ((id, e), gen)
+            ) in
+            (Fun (m, id, e), gen)
         | Ap (m, e1, e2) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (e2, s2, counter) = id_string_to_int env e2 counter in
-            (Ap (m, e1, e2), s1 |> MI.add_seq (MI.to_seq s2), counter)
-        | LetRecFun (m, id, id2, e1, e2) ->
-            let (id, env2, s1, counter) = (counter, MS.add id counter env, MI.singleton counter id, counter + 1) in
-            let (id2, env3, s2, counter) = (counter, MS.add id2 counter env2, MI.singleton counter id2, counter + 1) in
-            let (e1, s3, counter) = id_string_to_int env3 e1 counter in
-            let (e2, s4, counter) = id_string_to_int env2 e2 counter in
-            (LetRecFun (m, id, id2, e1, e2), s1 |> MI.add_seq (MI.to_seq s2) |>  MI.add_seq (MI.to_seq s3) |>  MI.add_seq (MI.to_seq s4), counter)
-        | EmptyList (m) -> (EmptyList (m), MI.empty, counter)
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let (e2, gen) = ident_to_unique_id e2 gen in
+            (Ap (m, e1, e2), gen)
+        | LetRecFun (m, ident1, ident2, e1, e2) ->
+            let ((id1, id2, e1, e2), gen) = gen |> Var_id_gen.scoped (
+                let (id1, gen) = Var_id_gen.gen ident1 gen in
+                let (id2, gen) = Var_id_gen.gen ident2 gen in
+                let (e1, gen) = ident_to_unique_id e1 gen in
+                let (e2, gen) = ident_to_unique_id e2 gen in
+                ((id1, id2, e1, e2), gen)
+            ) in
+            (LetRecFun (m, id1, id2, e1, e2), gen)
+        | EmptyList (m) -> (EmptyList (m), gen)
         | Cons (m, e1, e2) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (e2, s2, counter) = id_string_to_int env e2 counter in
-            (Cons (m, e1, e2), s1 |> MI.add_seq (MI.to_seq s2), counter)
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let (e2, gen) = ident_to_unique_id e2 gen in
+            (Cons (m, e1, e2), gen)
         | Match (m, e1, clauses) ->
-            let (e1, s1, counter) = id_string_to_int env e1 counter in
-            let (clauses, s2, counter) =
-                List.fold_right (fun (pat, e2) (clauses, s2, counter) ->
-                    let (pat, env2, s3, counter) = id_string_to_int_pat pat counter in
-                    let (e2, s4, counter) = id_string_to_int (env |> MS.add_seq (MS.to_seq env2)) e2 counter in
-                    ((pat, e2) :: clauses, s2 |> MI.add_seq (MI.to_seq s3) |> MI.add_seq (MI.to_seq s4), counter)
-                ) clauses ([], MI.empty, counter) in
-            (Match (m, e1, clauses), s1 |> MI.add_seq (MI.to_seq s2), counter)
+            let (e1, gen) = ident_to_unique_id e1 gen in
+            let (clauses, gen) =
+                List.fold_right (fun (pat, e2) (clauses, gen) ->
+                    gen |> Var_id_gen.scoped (
+                        let (pat, gen) = ident_to_unique_id_pat pat gen in
+                        let (e2, gen) = ident_to_unique_id e2 gen in
+                        ((pat, e2) :: clauses, gen)
+                    )
+                ) clauses ([], gen) in
+            (Match (m, e1, clauses), gen)
 
 
-let rec assign_id (e: ('id, 'a) t) (counter: int): (('id, int) t * int) =
+let rec assign_id (e: ('id, 'a) t) (gen: Expr_id_gen.t): (('id, Expr_id.t) t * Expr_id_gen.t) =
+    let (id, gen) = Expr_id_gen.gen gen in 
     match e with
-        | Int (_, a) -> (Int (counter, a), counter + 1)
-        | Bool (_, a) -> (Bool (counter, a), counter + 1)
-        | Var (_, a) -> (Var (counter, a), counter + 1)
+        | Int (_, a) ->
+            (Int (id, a), gen)
+        | Bool (_, a) ->
+            (Bool (id, a), gen)
+        | Var (_, a) ->
+            (Var (id, a), gen)
         | Op (_, e1, a, e2) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            (Op (counter, e1, a, e2), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            (Op (id, e1, a, e2), gen)
         | If (_, e1, e2, e3) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            let (e3, counter) = assign_id e3 counter in
-            (If (counter, e1, e2, e3), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            let (e3, gen) = assign_id e3 gen in
+            (If (id, e1, e2, e3), gen)
         | Let (_, a, e1, e2) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            (Let (counter, a, e1, e2), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            (Let (id, a, e1, e2), gen)
         | Fun (_, a, e1) ->
-            let (e1, counter) = assign_id e1 counter in
-            (Fun (counter, a, e1), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            (Fun (id, a, e1), gen)
         | Ap (_, e1, e2) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            (Ap (counter, e1, e2), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            (Ap (id, e1, e2), gen)
         | LetRecFun (_, a, b, e1, e2) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            (LetRecFun (counter, a, b, e1, e2), counter + 1)
-        | EmptyList (_) -> (EmptyList counter, counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            (LetRecFun (id, a, b, e1, e2), gen)
+        | EmptyList (_) -> (EmptyList id, gen)
         | Cons (_, e1, e2) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (e2, counter) = assign_id e2 counter in
-            (Cons (counter, e1, e2), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (e2, gen) = assign_id e2 gen in
+            (Cons (id, e1, e2), gen)
         | Match (_, e1, clauses) ->
-            let (e1, counter) = assign_id e1 counter in
-            let (clauses, counter) = List.fold_right (fun (pat, e2) (clauses, counter) ->
-                let (e2, counter) = assign_id e2 counter in
-                ((pat, e2) :: clauses, counter)
-            ) clauses ([], counter) in
-            (Match (counter, e1, clauses), counter + 1)
+            let (e1, gen) = assign_id e1 gen in
+            let (clauses, gen) = List.fold_right (fun (pat, e2) (clauses, gen) ->
+                let (e2, gen) = assign_id e2 gen in
+                ((pat, e2) :: clauses, gen)
+            ) clauses ([], gen) in
+            (Match (id, e1, clauses), gen)

@@ -1,4 +1,4 @@
-type t = int
+type t = ExprIdGen of int
 
-let make: t = 0
-let next (gen: t): (Expr_id.t * t) = (gen, gen + 1)
+let make: t = ExprIdGen 0
+let gen (ExprIdGen state: t): (Expr_id.t * t) = (ExprId state, ExprIdGen (state + 1))

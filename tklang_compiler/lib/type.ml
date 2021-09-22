@@ -1,20 +1,18 @@
-open Set_ext
-
-type t = TypeVar of int | Bool | Int | Func of t * t | List of t
+type t = TypeVar of Type_var_id.t | Bool | Int | Func of t * t | List of t
 
 let rec to_string (x:t): string =
     match x with
-    | TypeVar x -> "'" ^ Int.to_string x
+    | TypeVar x -> Type_var_id.to_string x
     | Bool -> "bool"
     | Int -> "int"
     | Func (x, y) -> "(" ^ to_string x ^ ")->(" ^ to_string y ^ ")"
     | List x -> "[" ^ to_string x ^ "]"
 
-let rec ftv (ts: t): SI.t = match ts with
-    | TypeVar id -> SI.singleton id
-    | Bool -> SI.empty
-    | Int -> SI.empty
-    | Func (t1, t2) -> SI.union (ftv t1) (ftv t2)
+let rec ftv (ts: t): Type_var_ids.t = match ts with
+    | TypeVar id -> Type_var_ids.singleton id
+    | Bool -> Type_var_ids.empty
+    | Int -> Type_var_ids.empty
+    | Func (t1, t2) -> Type_var_ids.merge (ftv t1) (ftv t2)
     | List t -> ftv t
 
 let rec eq (t1: t) (t2: t): bool = match (t1, t2) with

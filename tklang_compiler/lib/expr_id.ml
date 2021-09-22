@@ -1,3 +1,3 @@
-type t = int
+type t = ExprId of int
 
-let compare = Int.compare
+let compare (ExprId a: t) (ExprId b: t):int = Int.compare a b
