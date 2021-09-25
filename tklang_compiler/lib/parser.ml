@@ -147,3 +147,8 @@ let rec
             cons_parser
         ] xs
         
+
+let parse (tokens: Token.t list): expr option =
+    match expr_parser tokens with
+        | Some (expr, []) -> Some(expr)
+        | _ -> None

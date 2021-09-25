@@ -11,9 +11,9 @@ let read_all () =
 
 let () =
     let src = read_all () in
-    let tokens = Lexer.lex (src |> String.to_seq |> List.of_seq) in
-    let expr = match Parser.expr_parser tokens with
-        | Some (ast, []) -> ast
+    let tokens = Lexer.lex src in
+    let expr = match Parser.parse tokens with
+        | Some expr -> expr
         | _ -> raise Exception in
     let (expr, _) = Expr.assign_id expr Expr_id_gen.make in
     let (expr, _) = Expr.ident_to_unique_id expr Var_id_gen.make in
