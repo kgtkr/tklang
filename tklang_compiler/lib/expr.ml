@@ -30,20 +30,20 @@ let rec pat_to_string (tenv: Type_env.t) (x: Var_id.t pat): string =
         | ConsPat(p1, p2) -> "(" ^ pat_to_string tenv p1 ^ "::" ^ pat_to_string tenv p2 ^ ")"
         | IgnorePat -> "_"
 
-let rec to_string (ets: Expr_types.t) (idents: Type_env.t) (x: (Var_id.t, Expr_id.t) t): string =
+let rec to_string (ets: Expr_types.t) (tenv_acc: Type_env.t) (x: (Var_id.t, Expr_id.t) t): string =
     match x with
         | Int(nid, i) -> Int.to_string i ^ ": " ^ (Expr_types.get_exn nid ets |> Type.to_string)
         | Bool(nid, b) -> Bool.to_string b ^ ": " ^ (Expr_types.get_exn nid ets |> Type.to_string)
         | Var(nid, id) -> Var_id.to_string id ^ ": " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Op(nid, e1, op, e2) -> "(" ^ to_string ets idents e1 ^ op_to_string op ^ to_string ets idents e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | If(nid, e1, e2, e3) -> "(if " ^ to_string ets idents e1 ^ " then " ^ to_string ets idents e2 ^ " else " ^ to_string ets idents e3 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Let(nid, id, e1, e2) -> "(let " ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id idents) ^ " = " ^ to_string ets idents e1 ^ " in " ^ to_string ets idents e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Fun(nid, id, e) -> "(fun " ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id idents) ^ " -> " ^ to_string ets idents e ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Ap(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ " " ^ to_string ets idents e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | LetRecFun(nid, id1, id2, e1, e2) -> "(let rec " ^ Var_id.to_string_with_type_scheme id1 (Type_env.get_exn id1 idents) ^ " = fun " ^ Var_id.to_string_with_type_scheme id2 (Type_env.get_exn id2 idents) ^ " -> " ^ to_string ets idents e1 ^ " in " ^ to_string ets idents e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Op(nid, e1, op, e2) -> "(" ^ to_string ets tenv_acc e1 ^ op_to_string op ^ to_string ets tenv_acc e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | If(nid, e1, e2, e3) -> "(if " ^ to_string ets tenv_acc e1 ^ " then " ^ to_string ets tenv_acc e2 ^ " else " ^ to_string ets tenv_acc e3 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Let(nid, id, e1, e2) -> "(let " ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id tenv_acc) ^ " = " ^ to_string ets tenv_acc e1 ^ " in " ^ to_string ets tenv_acc e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Fun(nid, id, e) -> "(fun " ^ Var_id.to_string_with_type_scheme id (Type_env.get_exn id tenv_acc) ^ " -> " ^ to_string ets tenv_acc e ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Ap(nid, e1, e2) -> "(" ^ to_string ets tenv_acc e1 ^ " " ^ to_string ets tenv_acc e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | LetRecFun(nid, id1, id2, e1, e2) -> "(let rec " ^ Var_id.to_string_with_type_scheme id1 (Type_env.get_exn id1 tenv_acc) ^ " = fun " ^ Var_id.to_string_with_type_scheme id2 (Type_env.get_exn id2 tenv_acc) ^ " -> " ^ to_string ets tenv_acc e1 ^ " in " ^ to_string ets tenv_acc e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
         | EmptyList nid -> "[]: " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Cons(nid, e1, e2) -> "(" ^ to_string ets idents e1 ^ "::" ^ to_string ets idents e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
-        | Match(nid, e1, clauses) -> "(match " ^ to_string ets idents e1 ^ " with " ^ (clauses |> List.map (fun (pat, e) -> " | " ^ pat_to_string idents pat ^ " -> " ^ to_string ets idents e) |> String.concat "") ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Cons(nid, e1, e2) -> "(" ^ to_string ets tenv_acc e1 ^ "::" ^ to_string ets tenv_acc e2 ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
+        | Match(nid, e1, clauses) -> "(match " ^ to_string ets tenv_acc e1 ^ " with " ^ (clauses |> List.map (fun (pat, e) -> " | " ^ pat_to_string tenv_acc pat ^ " -> " ^ to_string ets tenv_acc e) |> String.concat "") ^ "): " ^ (Expr_types.get_exn nid ets |> Type.to_string)
 
 let rec ident_to_unique_id_pat (pat: string pat) (gen: Var_id_gen.t): (Var_id.t pat * Var_id_gen.t) =
     match pat with
