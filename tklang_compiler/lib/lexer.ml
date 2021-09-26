@@ -1,8 +1,8 @@
 exception LexError
 
-let is_ident_first (c: char): bool = 'a' <= c && c <= 'z'
+let is_lower_ident_first (c: char): bool = 'a' <= c && c <= 'z'
 
-let is_ident_rest (c: char): bool = is_ident_first c || c == '_' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9'
+let is_letter_ident_rest (c: char): bool = 'a' <= c && c <= 'z' || c == '_' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9'
 
 let is_digit (c: char): bool = '0' <= c && c <= '9'
 
@@ -30,8 +30,8 @@ let rec lex_ (input: char list) (tokens: Token.t list): Token.t list =
             let (ds, cs) = split_while is_digit cs in
             let n = (c :: ds) |> List.to_seq |> String.of_seq |> int_of_string in
             lex_ cs (Token.Int n :: tokens)
-        | c::cs when is_ident_first(c) ->
-            let (ident_rest, cs) = split_while is_ident_rest cs in
+        | c::cs when is_lower_ident_first(c) ->
+            let (ident_rest, cs) = split_while is_letter_ident_rest cs in
             let ident = (c :: ident_rest) |> List.to_seq |> String.of_seq in
             lex_ cs ((match ident with
             | "if" -> Token.ReservedKeyword Token.If
@@ -45,7 +45,7 @@ let rec lex_ (input: char list) (tokens: Token.t list): Token.t list =
             | "with" -> Token.ReservedKeyword Token.With
             | "true" -> Token.ReservedKeyword Token.True
             | "false" -> Token.ReservedKeyword Token.False
-            | ident -> Token.Ident ident) :: tokens)
+            | ident -> Token.LowerIdent ident) :: tokens)
         | c::cs when is_symbol(c) ->
             let (symbol_rest, cs) = split_while is_symbol cs in
             let symbol = (c :: symbol_rest) |> List.to_seq |> String.of_seq in
@@ -53,7 +53,7 @@ let rec lex_ (input: char list) (tokens: Token.t list): Token.t list =
             | "->" -> Token.ReservedSymbol Token.RArrow
             | "|" -> Token.ReservedSymbol Token.VerticalBar
             | "=" -> Token.ReservedSymbol Token.Equal
-            | symbol -> Token.Op symbol) :: tokens)
+            | symbol -> Token.SymbolIdent symbol) :: tokens)
         | _ -> raise LexError
 
 let lex (src: string): Token.t list =

@@ -17,8 +17,8 @@ type reserved_symbol =
     | Equal
     
 type t =
-    | Op of string
-    | Ident of string
+    | SymbolIdent of string
+    | LowerIdent of string
     | Int of int
     | ReservedKeyword of reserved_keyword
     | ReservedSymbol of reserved_symbol

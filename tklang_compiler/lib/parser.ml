@@ -60,7 +60,7 @@ let rec
         | Token.Int n :: xs -> Some (Expr.Int((), n), xs)
         | Token.ReservedKeyword Token.True :: xs -> Some (Expr.Bool((), true), xs)
         | Token.ReservedKeyword Token.False :: xs -> Some (Expr.Bool((), false), xs)
-        | Token.Ident x :: xs -> Some (Expr.Var((), x), xs)
+        | Token.LowerIdent x :: xs -> Some (Expr.Var((), x), xs)
         | Token.BracketBegin :: xs -> (match xs with | Token.BracketEnd :: xs -> Some (Expr.EmptyList (), xs) | _ -> None)
         | Token.ParentBegin :: xs -> (
                 match expr_parser xs with
@@ -69,9 +69,9 @@ let rec
             )
         | _ -> None
     and ap_parser: expr parser = fun xs -> left_join atom_parser (pure (fun a b -> Expr.Ap ((), a, b))) xs
-    and term_parser: expr parser = fun xs -> left_join ap_parser (satisfy (fun x -> match x with | Token.Op "*" -> Some (fun a b -> Expr.Op ((), a, Expr.Mul, b)) | _ -> None)) xs
-    and addsub_parser: expr parser = fun xs -> left_join term_parser (satisfy (fun x -> match x with | Token.Op "+" -> Some (fun a b -> Expr.Op ((), a, Expr.Add, b)) | Token.Op "-" -> Some (fun a b -> Expr.Op ((), a, Expr.Sub, b)) | _ -> None)) xs
-    and cons_parser: expr parser = fun xs -> right_join addsub_parser (satisfy (fun x -> match x with | Token.Op "::" -> Some (fun a b -> Expr.Cons ((), a, b)) | _ -> None)) xs
+    and term_parser: expr parser = fun xs -> left_join ap_parser (satisfy (fun x -> match x with | Token.SymbolIdent "*" -> Some (fun a b -> Expr.Op ((), a, Expr.Mul, b)) | _ -> None)) xs
+    and addsub_parser: expr parser = fun xs -> left_join term_parser (satisfy (fun x -> match x with | Token.SymbolIdent "+" -> Some (fun a b -> Expr.Op ((), a, Expr.Add, b)) | Token.SymbolIdent "-" -> Some (fun a b -> Expr.Op ((), a, Expr.Sub, b)) | _ -> None)) xs
+    and cons_parser: expr parser = fun xs -> right_join addsub_parser (satisfy (fun x -> match x with | Token.SymbolIdent "::" -> Some (fun a b -> Expr.Cons ((), a, b)) | _ -> None)) xs
     and if_parser: expr parser = fun xs ->
         (
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.If -> Some (()) | _ -> None) in
@@ -85,7 +85,7 @@ let rec
     and let_parser: expr parser = fun xs ->
         (
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.Let -> Some (()) | _ -> None) in
-            let* id = satisfy (fun x -> match x with | Token.Ident id -> Some (id) | _ -> None) in
+            let* id = satisfy (fun x -> match x with | Token.LowerIdent id -> Some (id) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedSymbol Token.Equal -> Some (()) | _ -> None) in
             let* e1 = expr_parser in
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.In -> Some (()) | _ -> None) in
@@ -95,7 +95,7 @@ let rec
     and fun_parser: expr parser = fun xs ->
         (
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.Fun -> Some (()) | _ -> None) in
-            let* id = satisfy (fun x -> match x with | Token.Ident id -> Some (id) | _ -> None) in
+            let* id = satisfy (fun x -> match x with | Token.LowerIdent id -> Some (id) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedSymbol Token.RArrow -> Some (()) | _ -> None) in
             let* e = expr_parser in
             pure (Expr.Fun ((), id, e))
@@ -104,10 +104,10 @@ let rec
         (
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.Let -> Some (()) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.Rec -> Some (()) | _ -> None) in
-            let* id1 = satisfy (fun x -> match x with | Token.Ident id -> Some (id) | _ -> None) in
+            let* id1 = satisfy (fun x -> match x with | Token.LowerIdent id -> Some (id) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedSymbol Token.Equal -> Some (()) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.Fun -> Some (()) | _ -> None) in
-            let* id2 = satisfy (fun x -> match x with | Token.Ident id -> Some (id) | _ -> None) in
+            let* id2 = satisfy (fun x -> match x with | Token.LowerIdent id -> Some (id) | _ -> None) in
             let* _ = satisfy (fun x -> match x with | Token.ReservedSymbol Token.RArrow -> Some (()) | _ -> None) in
             let* e1 = expr_parser in
             let* _ = satisfy (fun x -> match x with | Token.ReservedKeyword Token.In -> Some (()) | _ -> None) in
@@ -116,11 +116,11 @@ let rec
         ) xs
     and atom_pat_parser: pat parser = fun xs ->
         match xs with
-        | Token.Ident x :: xs -> Some (Expr.AnyPat x, xs)
+        | Token.LowerIdent x :: xs -> Some (Expr.AnyPat x, xs)
         | Token.Underscore :: xs -> Some (Expr.IgnorePat, xs)
         | Token.BracketBegin :: xs -> (match xs with | Token.BracketEnd :: xs -> Some (Expr.EmptyListPat, xs) | _ -> None)
         | _ -> None
-    and pat_parser: pat parser = fun xs -> right_join atom_pat_parser (satisfy (fun x -> match x with | Token.Op "::" -> Some (fun a b -> Expr.ConsPat (a, b)) | _ -> None)) xs
+    and pat_parser: pat parser = fun xs -> right_join atom_pat_parser (satisfy (fun x -> match x with | Token.SymbolIdent "::" -> Some (fun a b -> Expr.ConsPat (a, b)) | _ -> None)) xs
     and clause_parser: clause parser = fun xs ->
         (
             let* _ = satisfy (fun x -> match x with | Token.ReservedSymbol Token.VerticalBar -> Some (()) | _ -> None) in
