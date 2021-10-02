@@ -53,14 +53,17 @@ type memarg = {
 type instr =
   | I32Const of int
   | I64Const of int
+  (*
   | F32Const of float
   | F64Const of float
+  *)
   | I32Clz
   | I32Ctz
   | I32Popcnt
   | I64Clz
   | I64Ctz
   | I64Popcnt
+  (*
   | F32Abs
   | F32Neg
   | F32Sqrt
@@ -75,6 +78,7 @@ type instr =
   | F64Floor
   | F64Trunc
   | F64Nearest
+  *)
   | I32Add
   | I32Sub
   | I32Mul
@@ -105,6 +109,7 @@ type instr =
   | I64ShrU
   | I64Rotl
   | I64Rotr
+  (*
   | F32Add
   | F32Sub
   | F32Mul
@@ -119,6 +124,7 @@ type instr =
   | F64Min
   | F64Max
   | F64CopySign
+  *)
   | I32Eqz
   | I64Eqz
   | I32Eq
@@ -141,6 +147,7 @@ type instr =
   | I64LeU
   | I64GeS
   | I64GeU
+  (*
   | F32Eq
   | F32Ne
   | F32Lt
@@ -153,9 +160,11 @@ type instr =
   | F64Gt
   | F64Le
   | F64Ge
+  *)
   | I32WrapI64
   | I64ExtendI32S
   | I64ExtendI32U
+  (*
   | I32TruncF32S
   | I32TruncF32U
   | I32TruncF64S
@@ -178,6 +187,7 @@ type instr =
   | I64ReinterpretF64
   | F32ReinterpretI32
   | F64ReinterpretI64
+  *)
   | Drop
   | Select
   | LocalGet of localIdx
@@ -187,12 +197,16 @@ type instr =
   | GlobalSet of globalIdx
   | I32Load of memarg
   | I64Load of memarg
+  (*
   | F32Load of memarg
   | F64Load of memarg
+  *)
   | I32Store of memarg
   | I64Store of memarg
+  (*
   | F32Store of memarg
   | F64Store of memarg
+  *)
   | I32Load8S of memarg
   | I32Load8U of memarg
   | I64Load8S of memarg
