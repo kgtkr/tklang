@@ -33,7 +33,7 @@ let rec encode_signed_integer_helper (size: int) (value: int) (neg: bool) (bytes
 let encode_signed_integer (size: int) (value: int): Wasm_ast.byte Diff_list.t =
   encode_signed_integer_helper size value (value < 0) Diff_list.empty
 
-let encode_vec (xs: 'a list) (encoder: 'a -> Wasm_ast.byte Diff_list.t): Wasm_ast.byte Diff_list.t =
+let encode_vec (encoder: 'a -> Wasm_ast.byte Diff_list.t) (xs: 'a list): Wasm_ast.byte Diff_list.t =
   Diff_list.append (encode_unsigned_integer (List.length xs)) (Diff_list.concat (List.map encoder xs))
 
 let encode_memarg (memarg: Wasm_ast.memarg): Wasm_ast.byte Diff_list.t =
@@ -85,7 +85,7 @@ let rec encode_instr (instr: Wasm_ast.instr): Wasm_ast.byte Diff_list.t =
       ]
     | Wasm_ast.BrTable(ls, Wasm_ast.LabelIdx l) -> Diff_list.concat [
         Diff_list.singleton (Char.chr 0x0e);
-        encode_vec (List.map (fun (Wasm_ast.LabelIdx x) -> x) ls) encode_unsigned_integer;
+        encode_vec encode_unsigned_integer (List.map (fun (Wasm_ast.LabelIdx x) -> x) ls);
         encode_unsigned_integer l;
       ]
     | Wasm_ast.Return -> Diff_list.singleton (Char.chr 0x0f)
@@ -273,3 +273,144 @@ let rec encode_instr (instr: Wasm_ast.instr): Wasm_ast.byte Diff_list.t =
     | Wasm_ast.I32WrapI64 -> Diff_list.singleton (Char.chr 0xa7)
     | Wasm_ast.I64ExtendI32S -> Diff_list.singleton (Char.chr 0xac)
     | Wasm_ast.I64ExtendI32U -> Diff_list.singleton (Char.chr 0xad)
+
+let encode_expr (Expr is: Wasm_ast.expr):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    Diff_list.concat (List.map encode_instr is);
+    Diff_list.singleton (Char.chr 0x0b);
+  ]
+
+let encode_name (s: string):  Wasm_ast.byte Diff_list.t =
+  Bytes.of_string s |> Bytes.to_seq |> List.of_seq |> encode_vec encode_byte
+
+let encode_func_type (value: Wasm_ast.funcType):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    Diff_list.singleton (Char.chr 0x60);
+    encode_vec encode_val_type value.params;
+    encode_vec encode_val_type value.results;
+  ]
+
+let encode_limits (value: Wasm_ast.limits):  Wasm_ast.byte Diff_list.t =
+  match value.max with
+  | None -> Diff_list.concat [
+    Diff_list.singleton (Char.chr 0x00);
+    encode_unsigned_integer value.min;
+  ]
+  | Some max -> Diff_list.concat [
+    Diff_list.singleton (Char.chr 0x01);
+    encode_unsigned_integer value.min;
+    encode_unsigned_integer max;
+  ]
+
+let encode_mem_type (value: Wasm_ast.memType):  Wasm_ast.byte Diff_list.t =
+  encode_limits value.limits
+
+let encode_elem_type (value: Wasm_ast.elemType):  Wasm_ast.byte Diff_list.t =
+  match value with
+  | Wasm_ast.FuncRef -> Diff_list.singleton (Char.chr 0x70)
+
+let encode_table_type (value: Wasm_ast.tableType):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_elem_type value.elemType;
+    encode_limits value.limits;
+  ]
+
+let encode_mutability (value: Wasm_ast.globalMutability):  Wasm_ast.byte Diff_list.t =
+  match value with
+  | Wasm_ast.Const -> Diff_list.singleton (Char.chr 0x00)
+  | Wasm_ast.Mutable -> Diff_list.singleton (Char.chr 0x01)
+
+let encode_global_type (value: Wasm_ast.globalType):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_val_type value.valType;
+    encode_mutability value.mutability;
+  ]
+
+let encode_import_desc (value: Wasm_ast.importDesc):  Wasm_ast.byte Diff_list.t =
+  match value with
+  | Wasm_ast.Func (Wasm_ast.TypeIdx x) -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x00);
+      encode_unsigned_integer x;
+    ]
+  | Wasm_ast.Table x -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x01);
+      encode_table_type x;
+    ]
+  | Wasm_ast.Mem x -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x02);
+      encode_mem_type x;
+    ]
+  | Wasm_ast.Global x -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x03);
+      encode_global_type x;
+    ]
+
+let encode_import (value: Wasm_ast.import):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_name value.module_;
+    encode_name value.name;
+    encode_import_desc value.desc;
+  ]
+
+let encode_table (value: Wasm_ast.table):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_table_type value.typ;
+  ]
+
+let encode_mem (value: Wasm_ast.mem):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_mem_type value.typ;
+  ]
+
+let encode_global (value: Wasm_ast.global):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_global_type value.typ;
+    encode_expr value.init;
+  ]
+  
+let encode_export_desc (value: Wasm_ast.exportDesc):  Wasm_ast.byte Diff_list.t =
+  match value with
+  | Wasm_ast.Func (Wasm_ast.FuncIdx x) -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x00);
+      encode_unsigned_integer x;
+    ]
+  | Wasm_ast.Table (Wasm_ast.TableIdx x) -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x01);
+      encode_unsigned_integer x;
+    ]
+  | Wasm_ast.Mem (Wasm_ast.MemIdx x) -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x02);
+      encode_unsigned_integer x;
+    ]
+  | Wasm_ast.Global (Wasm_ast.GlobalIdx x) -> Diff_list.concat [
+      Diff_list.singleton (Char.chr 0x03);
+      encode_unsigned_integer x;
+    ]
+
+let encode_export (value: Wasm_ast.export):  Wasm_ast.byte Diff_list.t =
+  Diff_list.concat [
+    encode_name value.name;
+    encode_export_desc value.desc;
+  ]
+
+let encode_start (value: Wasm_ast.start):  Wasm_ast.byte Diff_list.t =
+  let (Wasm_ast.FuncIdx idx) = value.func in
+  Diff_list.concat [
+    encode_unsigned_integer idx;
+  ]
+
+let encode_elem (value: Wasm_ast.elem):  Wasm_ast.byte Diff_list.t =
+  let (Wasm_ast.TableIdx idx) = value.table in
+  Diff_list.concat [
+    encode_unsigned_integer idx;
+    encode_expr value.offset;
+    encode_vec (fun (Wasm_ast.FuncIdx x) -> encode_unsigned_integer x) value.init;
+  ]
+
+let encode_data (value: Wasm_ast.data):  Wasm_ast.byte Diff_list.t =
+  let (Wasm_ast.MemIdx idx) = value.data in
+  Diff_list.concat [
+    encode_unsigned_integer idx;
+    encode_expr value.offset;
+    encode_vec encode_byte value.init;
+  ]

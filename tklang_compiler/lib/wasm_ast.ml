@@ -287,7 +287,7 @@ type export = {
 }
 
 type importDesc = 
-  | Func of funcType
+  | Func of typeIdx
   | Table of tableType
   | Mem of memType
   | Global of globalType
