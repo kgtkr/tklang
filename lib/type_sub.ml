@@ -4,10 +4,8 @@ type t = Type.t M.t
 
 let rec sub_type (s: t) (t: Type.t) = match t with
     | TypeVar id -> M.find_opt id s |> Option.value ~default: t
-    | Bool -> t
     | Int -> t
     | Func (t1, t2) -> Func (sub_type s t1, sub_type s t2)
-    | List t1 -> List (sub_type s t1)
 
 
 (** 型スキーマの束縛変数は衝突しないという仮定が必要 *)
