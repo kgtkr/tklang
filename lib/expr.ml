@@ -1,6 +1,4 @@
-type
-    op = Add | Sub | Mul | Lt
-    and ('id, 'a) t =
+type ('id, 'a) t =
     | Int of 'a * int
     | Var of 'a * 'id
     | Let of 'a * 'id * ('id, 'a) t * ('id, 'a) t
