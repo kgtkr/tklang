@@ -12,13 +12,17 @@ type
       | Unnamed of (('id, 'a) expr) list
       | Named of (string * ('id, 'a) expr) list
       | NonParams
-    and ('id, 'a) expr =
-    | Literal of 'a * literal
-    | Var of 'a * 'id
-    | Let of 'a * 'id * ('id, 'a) expr * ('id, 'a) expr
-    | Fun of 'a * 'id * ('id, 'a) expr
-    | Ap of 'a * ('id, 'a) expr * ('id, 'a) expr
-    | LetRec of 'a * 'id *  ('id, 'a) expr * ('id, 'a) expr
-    | Match of 'a * ('id, 'a) expr * ('id pat * ('id, 'a) expr) list
-    | ApConstruct of 'a * string * ('id, 'a) constructParams
+    and ('id, 'a) exprPayload =
+      | Literal of literal
+      | Var of 'id
+      | Let of 'id * ('id, 'a) expr * ('id, 'a) expr
+      | Fun of 'id * ('id, 'a) expr
+      | Ap of ('id, 'a) expr * ('id, 'a) expr
+      | LetRec of 'id *  ('id, 'a) expr * ('id, 'a) expr
+      | Match of ('id, 'a) expr * ('id pat * ('id, 'a) expr) list
+      | ApConstruct of string * ('id, 'a) constructParams
+    and ('id, 'a) expr = {
+      payload: ('id, 'a) exprPayload;
+      meta: 'a
+    }
     ;;
